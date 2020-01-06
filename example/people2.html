@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>demo-sun</title>
+    <style>
+        canvas {
+            width: 100%;
+            height: 100%;
+        }
+		</style>
+		
+		<script type="text/javascript" src="../libs/stats.js"></script>
+		<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/2.0.2/TweenMax.min.js"></script>
+</head>
+
+<body>
+    
+    <script type="module">
+        import * as THREE from '../libs/three.module.js';
+        import { GLTFLoader } from '../libs/GLTFLoader.js';
+				import { OrbitControls } from '../libs/OrbitControls.js';
+        var renderer, camera, scene, stats, light, clock, orbitControls, pointCloud;
+        var width, height;
+
+        function initThree() {
+            width = window.innerWidth;
+            height = window.innerHeight;
+            renderer = new THREE.WebGLRenderer({
+                antialias: true //开启抗锯齿
+            });
+            renderer.setSize(width, height); //设置画布大小
+            renderer.setClearColor(0x000000); //设置画布背景颜色
+            document.body.appendChild(renderer.domElement); //将画布追加到html文档中
+        }
+
+        function setStats() {
+            stats = new Stats();
+            stats.domElement.style.position = 'absolute';
+            stats.domElement.style.left = '0';
+            stats.domElement.style.top = '0';
+            document.body.appendChild(stats.domElement);
+        }
+
+        function initCamera() {
+            camera = new THREE.PerspectiveCamera(45, width / height, 1, 10000);
+            camera.position.x = 100;
+            camera.position.y = 100;
+            camera.position.z = 500;
+            camera.up.x = 0;
+            camera.up.y = 1;
+            camera.up.z = 0;
+            camera.lookAt(0, 100, 0);
+        }
+				function initControls() {
+					orbitControls = new OrbitControls(camera,renderer.domElement);
+					orbitControls.autoRotate = true;
+					// orbitControls.minDistance = 400;
+					// orbitControls.maxDistance = 700;
+				}
+
+        function initScene() {
+            scene = new THREE.Scene();
+        }
+
+        function initLight() {
+            light = new THREE.DirectionalLight(0xffffff, 1);
+            light.position.set(10, 10, 3);
+            scene.add(light);
+        }
+
+				function initPeople() {
+					var loader = new GLTFLoader();
+
+					loader.load("../assets/models/gltf/man-20w.gltf", function (geometry) {
+						console.log(geometry)
+						var mesh = geometry.scene.children[1]
+						const box = new THREE.Box3().setFromObject(mesh)
+						const boxSize = box.getSize(new THREE.Vector3()).length()
+						const boxCenter = box.getCenter(new THREE.Vector3())
+
+						orbitControls.maxDistance = boxSize * 2
+						orbitControls.target.copy(boxCenter)
+						orbitControls.update()
+						
+						geometry = geometry.scene.children[1].geometry
+						// loadedGeometry = geometry.clone();
+
+						var material = new THREE.PointsMaterial({
+							color: 0xffffff,
+							size: 0.4,
+							opacity: 0,
+							transparent: true,
+							blending: THREE.AdditiveBlending,
+							map: generateSprite()
+						});
+
+						pointCloud = new THREE.Points(geometry, material);
+						pointCloud.sortParticles = true;
+
+						// tween.start();
+						scene.add(pointCloud);
+					});
+				}
+				function generateSprite() {
+
+					var canvas = document.createElement('canvas');
+					canvas.width = 16;
+					canvas.height = 16;
+
+					var context = canvas.getContext('2d');
+					var gradient = context.createRadialGradient(canvas.width / 2, canvas.height / 2, 0, canvas.width / 2,
+					canvas.height / 2, canvas.width / 2);
+					gradient.addColorStop(0, 'rgba(255,255,255,1)');
+					gradient.addColorStop(0.2, 'rgba(255,255,255,.5)');
+					gradient.addColorStop(0.4, 'rgba(255,255,255,.3)');
+					gradient.addColorStop(1, 'rgba(0,0,0,1)');
+
+					context.fillStyle = gradient;
+					context.fillRect(0, 0, canvas.width, canvas.height);
+
+					var texture = new THREE.Texture(canvas);
+					texture.needsUpdate = true;
+					return texture;
+
+				}
+
+				function initAnim() {
+					let tl = new TimelineMax()
+					tl.add('start')
+					tl.add(
+						TweenMax.to(pointCloud.material, 3, { opacity: 0.3 }),
+						'start' 
+					)
+				}
+
+        function init() {
+            initThree();
+            setStats();
+            initCamera();
+						initControls();
+            initScene();
+            initLight();
+						initPeople();
+						setTimeout(initAnim,500);
+            
+        }
+
+        function anim() {
+						stats.update()
+						orbitControls.update();
+            renderer.render(scene, camera);
+            requestAnimationFrame(anim);
+        }
+
+        init()
+        anim()
+    </script>
+</body>
+
+</html>
