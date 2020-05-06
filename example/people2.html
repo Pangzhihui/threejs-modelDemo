@@ -127,12 +127,7 @@
 				}
 
 				function initAnim() {
-					let tl = new TimelineMax()
-					tl.add('start')
-					tl.add(
-						TweenMax.to(pointCloud.material, 3, { opacity: 0.3 }),
-						'start' 
-					)
+					TweenMax.to(pointCloud.material, 3, { opacity: 0.3 })
 				}
 
         function init() {
